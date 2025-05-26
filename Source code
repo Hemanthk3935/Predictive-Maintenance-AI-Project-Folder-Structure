@@ -1,0 +1,64 @@
+# Predictive Maintenance Model - Google Colab 
+
+# Step 1: Upload Dataset
+from google.colab import files
+uploaded = files.upload()
+
+# Step 2: Load and Inspect Data
+import pandas as pd
+import numpy as np
+
+df = pd.read_csv('sample_predictive_maintenance_data.csv')
+print("Data Loaded:")
+print(df.head())
+
+# Step 3: Feature Engineering
+print("\nEngineering time-based features...")
+df['Last_Inspection_Date'] = pd.to_datetime(df['Last_Inspection_Date'])
+df['Days_Since_Last_Inspection'] = (pd.Timestamp.today() - df['Last_Inspection_Date']).dt.days
+
+df['Last_Repair_Date'] = pd.to_datetime(df['Last_Repair_Date'])
+df['Days_Since_Last_Repair'] = (pd.Timestamp.today() - df['Last_Repair_Date']).dt.days
+
+# One-hot encode categorical features
+df_encoded = pd.get_dummies(df, columns=['Asset_Type', 'Region', 'Priority'], drop_first=True)
+
+# Step 4: Define Features and Target
+X = df_encoded.drop(['Asset_ID', 'Will_Fail_Next_Year', 'Last_Inspection_Date', 'Last_Repair_Date'], axis=1)
+y = df_encoded['Will_Fail_Next_Year']
+
+# Step 5: Train-Test Split
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+print(f"Training on {X_train.shape[0]} samples, testing on {X_test.shape[0]} samples.")
+
+# Step 6: Train Model
+from sklearn.ensemble import RandomForestClassifier
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+print("\nModel trained successfully.")
+
+# Step 7: Evaluate Model
+from sklearn.metrics import classification_report, confusion_matrix
+
+y_pred = model.predict(X_test)
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# Step 8: Feature Importance
+importances = pd.Series(model.feature_importances_, index=X.columns)
+print("\nFeature Importances:")
+print(importances.sort_values(ascending=False))
+
+# Step 9 (Optional): Save Model
+import joblib
+joblib.dump(model, 'predictive_maintenance_model.pkl')
+print("\nModel saved as 'predictive_maintenance_model.pkl'.")
+
+# To download the model:
+# files.download('predictive_maintenance_model.pkl')
+
